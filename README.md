@@ -1,6 +1,6 @@
 # Siddartha
 
-Thanks everone who view my code. 
+
 I wrote code for Trading Automation and Infra Automation(vSphere,Azure,vRa,PowerShell,JavaScript)
 
 I believe it will help outside audiance. I use FYERS REST version 1  API  to execute the tasks in powershell.
