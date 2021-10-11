@@ -1,0 +1,29 @@
+
+function Remove_AD_DNS($servername,$DC,$domainName,$username,$password,$Server_path_file)
+{
+Get-DnsServerZone -ComputerName $DC -Name $domainName  |Get-DnsServerResourceRecord -ComputerName $DC | where {$_.hostname -eq $servername} | Remove-DnsServerResourceRecord -Zonename $domainName -ComputerName $DC -Confirm:$false -WhatIf:$false -Force
+$secstr = New-Object -TypeName System.Security.SecureString
+$password.ToCharArray() | ForEach-Object {$secstr.AppendChar($_)}
+$cred = new-object -typename System.Management.Automation.PSCredential -argumentlist $username, $secstr
+try
+{
+Get-ADComputer -Identity  $servername | Remove-ADObject -Credential $cred  -Confirm:$false -WhatIf:$false  -Recursive
+}
+catch
+{
+Write-Host "The error is $_ "
+}
+Start-Sleep -Seconds 5
+Get-DnsServerZone -ComputerName $DC | where {$_.IsReverseLookupZone -eq "true"} | Where {$_.Zonetype -eq "Primary"} |% {
+ $zone_name = $_.zonename 
+ #write "$zone_name"
+ $_ |  Get-DnsServerResourceRecord -ComputerName $DC | where {$_.RecordData.PtrDomainName -eq "$servername.$domainName."}| Remove-DnsServerResourceRecord -Zonename $zone_name -ComputerName $DC -Confirm:$false -WhatIf:$false  -Force}
+ }
+
+ $server_list = Get-Content $Server_path_file
+ foreach($server1 in $server_list)
+ {
+    $server1
+    Remove_AD_DNS $server1
+
+ }
