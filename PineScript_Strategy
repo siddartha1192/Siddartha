@@ -24,7 +24,8 @@ sl := input(300, "Stop Loss ", type=input.float)
 tp := (tp/close)*100
 sl := (sl/close)*100
 
-
+in_longCondition = bool(na)
+in_shortCondition = bool(na)
 BuyPrice = float(na)
 SellPrice = float(na)
 BuyPrice := crossover(ema(close, FastMA), ema(close, SlowMA)) ? high : nz(BuyPrice[1])
@@ -152,10 +153,11 @@ plot(last_Low_shortCondition1-80, style=plot.style_line, linewidth=2, color=colo
 
 //--------------------------------------
 
-//longCond1 := last_High_longCondition1+40 < close and last_High_longCondition1 > open[1] and in_longCondition1
-//shortCond1 := last_Low_shortCondition1-40 > close and last_Low_shortCondition1 < open[1] and in_shortCondition1
-longCond1 := (last_High_longCondition1+80 < close and last_High_longCondition1+80 > open) or (last_Low_shortCondition1-80 < close and last_Low_shortCondition1-80 > open) //and in_longCondition1
-shortCond1 := (last_Low_shortCondition1-80 > close  and last_Low_shortCondition1-80 < open) or  (last_High_longCondition1+80 > close  and last_High_longCondition1+80 < open)//and in_shortCondition1
+//longCond1 := last_High_longCondition1+40 < close and in_longCondition1
+//shortCond1 := last_Low_shortCondition1-40 > close and in_shortCondition1
+
+longCond1 := (crossover(close,(last_High_longCondition1+80)) and high > (last_High_longCondition1+80) ) or (crossover(close,(last_Low_shortCondition1-80)) and low < (last_Low_shortCondition1-80))
+shortCond1 := (crossunder(close,(last_High_longCondition1+80)) and high > (last_High_longCondition1+80) ) or (crossunder(close,(last_Low_shortCondition1-80)) and low < (last_Low_shortCondition1-80) )
 
 
 // Count your long short conditions for more control with Pyramiding for the new buy logic
@@ -181,7 +183,7 @@ if shortCond1
 
 // Pyramiding
 
-pyrl1 = 1
+pyrl1 = 2
 
 // These check to see your signal and cross references it against the pyramiding settings above (for the new buy logic)
 
@@ -208,8 +210,8 @@ last_shortCondition = float(na)
 last_longCondition := longCondition ? time : nz(last_longCondition[1])
 last_shortCondition := shortCondition ? time : nz(last_shortCondition[1])
 
-in_longCondition = last_longCondition > last_shortCondition
-in_shortCondition = last_shortCondition > last_longCondition
+in_longCondition := last_longCondition > last_shortCondition
+in_shortCondition := last_shortCondition > last_longCondition
 
 
 
