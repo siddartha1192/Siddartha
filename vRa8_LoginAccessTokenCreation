@@ -1,0 +1,40 @@
+//Get vRA access token for vRa 8.x using JavaScript
+var restHost  = rest_host  //System.getModule("com.configuration.utils").getConfigElementAttributeValue("Global", "Endpoinds", "vRARest");
+var domain = <Domain>;
+var user = <User>;
+var password = <Password>;
+//Login Object
+var loginObj = {};
+loginObj.domain = domain;
+loginObj.password = password;
+loginObj.scope = ""
+loginObj.username = user;
+ 
+var loginJason = JSON.stringify(loginObj);
+//login URL
+var operationUrl = "/csp/gateway/am/api/login"
+var request = restHost.createRequest("POST", operationUrl, loginJason);
+request.setHeader("Content-Type", "application/json");
+var response = request.execute();
+System.debug(response.contentAsString);
+var res = JSON.parse(response.contentAsString);
+var token = res.cspAuthToken;
+System.log("token: " + token);
+
+
+#Login Using Refesh Token
+
+var loginObj1 = {};
+loginObj1.refreshToken=<Bx60CiUUtFG17TfXXXXXXXXXXXXXX>;
+ 
+var loginJason = JSON.stringify(loginObj1);
+//login URL
+var operationUrl = "/csp/gateway/am/api/login?access_token"
+var operationUrl = "iaas/api/login"
+var request = restHost.createRequest("POST", operationUrl, loginJason);
+request.setHeader("Content-Type", "application/json");
+var response = request.execute();
+System.debug(response.contentAsString);
+var res = JSON.parse(response.contentAsString);
+//var token = res.cspAuthToken;
+System.log("token: " + response.contentAsString);
