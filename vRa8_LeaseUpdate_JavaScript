@@ -1,0 +1,15 @@
+var LeaseChangePayload = {};
+LeaseChangePayload.actionId = 'Deployment.ChangeLease';
+LeaseChangePayload.reason = 'vRA Migration';
+LeaseChangePayload.inputs = {'Lease Expiration Date': '2022-07-29T11:32:46.368Z'};
+
+var loginJason = JSON.stringify(LeaseChangePayload);
+var operationUrl = "/deployment/api/deployments/" + ResourceID + "/requests"
+var request = restHost.createRequest("POST", operationUrl, loginJason);
+request.setHeader("Content-Type", "application/json");
+request.setHeader("Authorization", "Bearer " + vraToken);
+var response = request.execute();
+System.debug(response.contentAsString);
+var res = JSON.parse(response.contentAsString);
+
+System.log("Output Response: " + JSON.stringify(json1.content[0],',',3));
