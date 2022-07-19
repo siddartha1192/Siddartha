@@ -1,0 +1,16 @@
+//The vRo Javascript require DeploymentID,hostname(New Name),vraToken
+var Object1 = {};
+Object1.actionId = 'Deployment.EditDeployment';
+Object1.reason = 'vRA DeploymentNameUpdate';
+Object1.inputs = {'Name': hostname};;
+
+var loginJason = JSON.stringify(Object1);
+var operationUrl = "/deployment/api/deployments/" + DeploymentID + "/requests"
+var request = restHost.createRequest("POST", operationUrl, loginJason);
+request.setHeader("Content-Type", "application/json");
+request.setHeader("Authorization", "Bearer " + vraToken);
+var response = request.execute();
+System.debug(response.contentAsString);
+var res = JSON.parse(response.contentAsString);
+
+System.log("Output Response: " + JSON.stringify(json1.content[0],',',3));
