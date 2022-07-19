@@ -1,0 +1,26 @@
+
+//hostname,rest_host,token these values need to set as input.
+try
+{
+var restHost  = rest_host;
+var vraToken = token
+var content ="";
+var method = 'GET'
+operationUrl1 =   '/deployment/api/deployments?%24top=10000&search=' + hostname
+request1 =  restHost.createRequest("GET", operationUrl1);
+request1.setHeader("Content-Type", "application/json");
+
+request1.setHeader("Authorization", "Bearer " + vraToken);
+
+var response = request1.execute();
+var statusCode = response.statusCode;
+var responseContent = response.contentAsString;
+if(statusCode > 399) {
+    System.error(responseContent);
+    throw "executeRestAction Failed, Status Code: " + statusCode;
+} 
+var json1 = JSON.parse(responseContent)
+
+var ResourecID = (json1.content[0]).id;
+
+System.log("The resource ID : " + ResourecID );
