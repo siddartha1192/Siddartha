@@ -1,0 +1,63 @@
+function Get-AccessTokenFyers()
+{
+        Import-Module selenium
+        
+        $opt  = New-Object OpenQA.Selenium.Chrome.ChromeOptions
+        $opt.addArguments("disable-infobars");
+        $opt.addArguments("--start-maximized");
+        $opt.addArguments("--disable-extensions");
+        #$opt.addArguments("headless");
+
+        $driver = New-Object OpenQA.Selenium.Chrome.ChromeDriver($opt)
+        ($driver.Navigate().GoToURL('https://api.fyers.in/api/v2/generate-authcode?client_id=V9GQM61IVI-100&redirect_uri=https%3A%2F%2F127.0.0.1%3A5000%2Flogin&response_type=code&state=Testing'))
+
+        Start-Sleep -Seconds 5
+
+
+        # Enter the username in the Username box
+        $driver.FindElementByXPath('//*[@id="fy_client_id"]').SendKeys('< UserID >')
+
+        # Enter the password in the Password box
+        
+        
+
+        # Click on the Login button
+        $driver.FindElementByXPath('//*[@id="clientIdSubmit"]').Click()
+        Start-Sleep -Seconds 5
+        $driver.FindElementByXPath('//*[@id="fy_client_pwd"]').SendKeys('< Password >')
+        $driver.FindElementByXPath('//*[@id="loginSubmit"]').Click()
+        Start-Sleep -Seconds 5
+
+        $driver.FindElementByXPath('/html/body/section[8]/div[3]/div[3]/form/div[2]/input[1]').SendKeys('< FirstNumber of PIN >')
+        $driver.FindElementByXPath('/html/body/section[8]/div[3]/div[3]/form/div[2]/input[2]').SendKeys('< SecondNumber of PIN >')
+        $driver.FindElementByXPath('/html/body/section[8]/div[3]/div[3]/form/div[2]/input[3]').SendKeys('< ThirdNumber of PIN >')
+        $driver.FindElementByXPath('/html/body/section[8]/div[3]/div[3]/form/div[2]/input[4]').SendKeys('< FourthNumber of PIN >')
+     
+        <#$driver.FindElementByXPath('//*[@id="digit-1"]').SendKeys('3')
+        $driver.FindElementByXPath('//*[@id="digit-2"]').SendKeys('0')
+        $driver.FindElementByXPath('//*[@id="digit-3"]').SendKeys('2')#>
+        $pin = $driver.FindElementByXPath('//*[@id="fourth"]')
+        Start-Sleep -Seconds 7
+        #$pin = "entered"
+        if($pin)
+        {
+        $driver.FindElementByXPath('//*[@id="verifyPinSubmit"]').Click()
+        Start-Sleep -Seconds 3
+        Write-Host $driver.Url
+        $authToken = [string](($driver.Url).split('=')[-2]).split('&')[0]
+        $driver.Quit()
+        $json = $host | select @{n='grant_type';e={'authorization_code'}},@{n='appIdHash';e={'abd268445639974299265e1b552fe5d8ba9838b7a0237a8ed13efed7fa94af69'}},@{n='code';e={$authToken}} | ConvertTo-Json
+        $data1 = Invoke-WebRequest -Method Post -Uri 'https://api.fyers.in/api/v2/validate-authcode' -ContentType 'application/json' -Body $json 
+        $accesstoken = [string]$data1.Content.Split('"')[-2]
+        $accesstoken.Replace(' ','' )| Out-File   C:\Users\Administrator\Documents\accessToken.txt
+        $token = "V9GQM61IVI-100:" + (Get-Content C:\Users\Administrator\Documents\accessToken.txt)
+        Write-Host "$token"
+        #return [string]$accesstoken
+        }
+        else
+        {
+        Write-Host "There is no PIN entered"
+        
+
+        }
+ }
