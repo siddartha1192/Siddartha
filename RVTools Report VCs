@@ -1,0 +1,11 @@
+ $path="C:\Program Files (x86)\RobWare\RVTools\"
+$VCServer= Get-content c:\Scripts\vc.txt
+#$VCServer2="16.5.4.4"
+$AttachmentDir = "c:\Users\dassi01\Documents\rvtools"
+foreach($vc in $VCServer)
+{
+$AttachmentFile= $VC + '.xls'
+&"$path\rvtools.exe" -s $VC -u '*****' -p 'V******' -c ExportAll2xls -d $AttachmentDir -f $AttachmentFile
+#&"$path\rvtools.exe" -s $VCServer2 -u user2 -p password123 -c ExportAll2xls -d $AttachmentDir -f $AttachmentFile
+Start-Sleep -Seconds 300
+}
