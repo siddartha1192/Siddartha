@@ -1,0 +1,129 @@
+set-executionpolicy unrestricted
+connect-viserver (Read-Host "enter the vc list") -user (Read-Host "enter the user name") -password (Read-Host "enter the password")
+$depot = Read-Host "
+please enter the path for the depot file downloaded from VMware site
+Ex. - c:\ESXi550-201505002_B2718055.zip"
+Add-EsxSoftwareDepot -DepotUrl $depot
+$ImgPro = Get-EsxImageProfile | select name
+$ImgPro_count = $ImgPro.count
+if ($ImgPro_count -eq 4)
+{
+Write-Host "
+###################select your service profile####################
+Eneter 1 if to select "$ImgPro[0]"
+Eneter 2 if to select "$ImgPro[1]"
+Eneter 3 if to select "$ImgPro[2]"
+Eneter 4 if to select "$ImgPro[3]"
+##################################################################
+"
+}
+if ($ImgPro_count -eq 3)
+{
+Write-Host "
+###################select your service profile####################
+Eneter 1 if to select "$ImgPro[0]"
+Eneter 2 if to select "$ImgPro[1]"
+Eneter 3 if to select "$ImgPro[2]"
+##################################################################
+"
+}
+if ($ImgPro_count -eq 2)
+{
+Write-Host "
+###################select your service profile####################
+Eneter 1 if to select "$ImgPro[0]"
+Eneter 2 if to select "$ImgPro[1]"
+##################################################################
+"
+}
+if ($ImgPro_count -eq 1)
+{
+Write-Host "
+###################select your service profile####################
+Eneter 1 if to select "$ImgPro[0]"
+##################################################################
+"
+}
+if ($ImgPro_count -eq 5)
+{
+Write-Host "
+###################select your service profile####################
+Eneter 1 if to select "$ImgPro[0]"
+Eneter 2 if to select "$ImgPro[1]"
+Eneter 3 if to select "$ImgPro[2]"
+Eneter 4 if to select "$ImgPro[3]"
+Eneter 5 if to select "$ImgPro[4]"
+##################################################################
+"
+}
+if ($ImgPro_count -eq 6)
+{
+Write-Host "
+###################select your service profile####################
+Eneter 1 if to select "$ImgPro[0]"
+Eneter 2 if to select "$ImgPro[1]"
+Eneter 3 if to select "$ImgPro[2]"
+Eneter 4 if to select "$ImgPro[3]"
+Eneter 5 if to select "$ImgPro[4]"
+Eneter 6 if to select "$ImgPro[5]"
+##################################################################
+"
+}
+$i = Read-Host "enter the selection"
+if($i -eq 1)
+{
+$img1_profile = ($ImgPro[0]).name
+}
+if($i -eq 2)
+{
+$img1_profile = ($ImgPro[1]).name
+}
+if($i -eq 3)
+{
+$img1_profile = ($ImgPro[2]).name
+}
+if($i -eq 4)
+{
+$img1_profile = ($ImgPro[3]).name
+}
+if($i -eq 5)
+{
+$img1_profile = ($ImgPro[4]).name
+}
+if($i -eq 6)
+{
+$img1_profile = ($ImgPro[5]).name
+}
+$custom_name = Read-Host "enter the new custom profile name"
+New-EsxImageProfile -CloneProfile $img1_profile -Name $custom_name -Vendor Custom -Confirm:$false
+$enic = Read-Host "
+enter the enic path with the file name
+Ex.  c:\enic_driver_*******-offline_bundle-******.zip" 
+$fnic = read-host "
+enter the fnic path with the file name
+Ex. - c:\fnic_driver_*******-offline_bundle-******.zip" 
+$vem = read-host "
+enter the path for the vem zip file" 
+if($enic)
+{
+Add-EsxSoftwareDepot -DepotUrl $enic
+}
+if($fnic)
+{
+Add-EsxSoftwareDepot -DepotUrl $fnic
+}
+if($vem)
+{
+Add-EsxSoftwareDepot -DepotUrl $vem
+}
+add-esxsoftwarepackage -softwarepackage net-enic –imageprofile $custom_name
+add-esxsoftwarepackage -softwarepackage scsi-fnic -imageprofile $custom_name
+$edit = "c:\"
+$edit1 = ".zip"
+$edit2 = ".iso"
+$zip = $edit + $custom_name + $edit1
+$iso = $edit + $custom_name + $edit2
+$u = Get-EsxImageProfile $custom_name
+$u.viblist | select name,version,vendor
+Export-EsxImageProfile -ImageProfile $custom_name -FilePath $zip –ExportToBundle
+Export-EsxImageProfile -ImageProfile $custom_name -FilePath $iso –ExportToIso
