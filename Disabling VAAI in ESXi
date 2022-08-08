@@ -1,0 +1,11 @@
+$list = Import-Csv "e:\vaai_disable1.csv"
+ foreach($vmhost in $list)
+ {
+ Connect-VIServer ($vmhost.vc_name) 
+ $vmhost1 = $vmhost.ESX_name
+ $h = Get-VMHost ("$vmhost1" + "*")
+$h | Get-AdvancedSetting  -Name DataMover.HardwareAcceleratedMove | Set-AdvancedSetting -Value 0 -Confirm:$false
+ $h | Get-AdvancedSetting  -Name DataMover.HardwareAcceleratedInit | Set-AdvancedSetting -Value 0 -Confirm:$false
+ $h | Get-AdvancedSetting  -Name VMFS3.HardwareAcceleratedLocking | Set-AdvancedSetting -Value 0 -Confirm:$false
+ Disconnect-VIServer $global:DefaultVIServers -Confirm:$false
+ }
