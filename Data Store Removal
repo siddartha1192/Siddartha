@@ -1,0 +1,72 @@
+$vCenter = Read-Host "enter the vCenter name:"
+$pas1 = Get-Credential
+Connect-VIServer $vCenter -Credential $pas1
+$Name_DS = Read-Host "enter the datastore name:"
+$datastore_name = "$Name_DS"
+$Datastore_var = Get-View -ViewType datastore -Filter @{"name" = $datastore_name}
+$datastore = New-Object VMware.Vim.ManagedObjectReference
+$datastore.type = "Datastore"
+$Datastore_var1 = $datastore_var.MoRef
+$datastore_name = "$Name_DS"
+$DS_detail = Get-View -ViewType datastore -Filter @{"name" = $datastore_name}
+$DS_var = $DS_detail.summary.Url
+$DS_var2 = $DS_var.Split('/')[5]
+$DETA1 = Read-Host "provide the cluster name:"
+$host_name123 = $DETA1
+$host_cluster = Get-Cluster $host_name123 | Get-VMHost |select name
+foreach($host_data00 in $host_cluster)
+{
+$Host_data1 = $Host_data00.Name
+$Host_details01 = Get-VIEw -ViewType hostsystem -Filter @{"name" = $Host_data1}
+$Host_var001 =  $Host_details01.ConfigManager.StorageSystem
+$Host_var98 = Get-View -Id $Host_var001
+$Host_var98.UnmountVmfsVolume("$DS_var2")
+}
+$naa0 = $Datastore_var.info.Vmfs.extent |select diskname
+$naa1 = $naa0.DiskName
+$datastore = New-Object VMware.Vim.ManagedObjectReference
+$datastore.type = "Datastore"
+$Host_var11 = $Host_details01.ConfigManager.DatastoreSystem
+$Host_var22 = Get-View -Id $Host_var11
+$Host_var22.RemoveDatastore($Datastore_var1)
+ write-host "~~~~~~~~~~~~~     The DS removal is completed please the check the rescan is completed for all the host in the custer in the vCenter    ~~~~~~~~~~~~~~" -foregroundcolor Magenta
+ write-host " "
+ write-host "  1.   Press 1 to proceed for dtaching the Lun from device level" -foregroundcolor red
+ write-host " "
+ write-host "  2.   Press 2 to Exit" -foregroundcolor red
+ write-host " "
+ write-host "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" -foregroundcolor Magenta
+ write-host " "
+ $opt=(Read-Host "Please Enter your option  :")
+ if($opt -eq "1")
+ {
+ $cluster = $DETA1
+ Write-Host "please confrom the cluster name before lun detaching"
+ write-host "  1.   Press 1 if the cluster name is correct : $cluster " -foregroundcolor red
+ write-host "  2.   Press 2 if you want to exit" -foregroundcolor red
+ $opt1 =(Read-Host "Please Enter your option  :")
+ $SCSI_LUN = get-scsilun -vmhost $Host_data1 -canonicalname "$naa1" | select key
+ if($opt1 -eq "1")
+ {
+ foreach($host_data in $host_cluster)
+{
+$Host_data33 = $Host_data.Name
+$Host_details00 = Get-VIEw -ViewType hostsystem -Filter @{"name" = $Host_data33}
+$Host_var000 =  $Host_details00.ConfigManager.StorageSystem
+$Host_var99 = Get-View -Id $Host_var000
+$SCSI_LUN_var = $SCSI_LUN.key
+$SCSI_LUN_var1 = $SCSI_LUN_var.Split('-')[2]
+$Host_var99.DetachScsiLun("$SCSI_LUN_var1")
+}
+ }
+ if($opt1 -eq "2")
+ {
+Disconnect-VIServer $vCenter -Confirm:$false
+exit
+}
+ }
+ if($opt -eq "2")
+ {
+Disconnect-VIServer $vCenter -Confirm:$false
+exit
+}
