@@ -1,0 +1,27 @@
+function Cancel-Allposition($token)
+
+{
+
+try{
+
+    $json = '' | ConvertTo-Json
+
+    
+
+    $OrderStatus = Post-FyersAPI -method 'DELETE' -uri  'https://api.fyers.in/api/v2/positions' -token $token -body $json
+
+    $OrderStatus.message
+
+    }
+
+catch
+
+{
+
+Write-Host "Error: $_"
+
+}
+
+
+
+}
