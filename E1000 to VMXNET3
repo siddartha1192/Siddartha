@@ -1,0 +1,148 @@
+  #Give all the login
+ $vcenter = Read-Host "enter the vcenter name  "
+ Write-Host "enter the password of vCenter"
+ $pass2 = Get-Credential
+ Connect-VIServer $vcenter -Credential $pass2
+ $vmname = Read-Host " enter the VM name"
+ $GuestCred = Get-Credential
+ #######
+ $tools_report = Get-View -ViewType virtualmachine -Filter @{"name" = "$vmname"}
+ if (($tools_report.guest.ToolsStatus -ne "toolsOk") -and ($tools_report.guest.ToolsVersionStatus -eq "guestToolsNeedUpgrade"))
+ {
+ Write-Host "The VMtools are not running for the VM"
+ Write-Host "upgrading the VMtools it will NOT Reboot the server"
+ Update-Tools -VM $vmname -NoReboot
+ }
+ if($tools_report.guest.ToolsRunningStatus -eq "guestToolsNotRunning")
+ {
+ Write-Host "the Vm tools are not running the so upgrade can not happen"
+ Disconnect-VIServer $global:DefaultVIServers -Confirm:$false
+ exit
+ }
+ #######
+ #Get all the nic and os adapter details
+ $net_adp = Get-NetworkAdapter -VM $vmname | where {$_.type -eq "E1000"}
+   $rr = Get-VMGuestNetworkInterface -VM $vmname  -GuestCredential $GuestCred 
+  foreach ($nic in $net_adp)
+  {
+  $port_grup_name = $nic.NetworkName 
+  $vln_ID11 = Get-VirtualPortGroup -Name $nic.NetworkName -VM $vmname
+  $vln_ID =  $vln_ID11.VLanId 
+  $port_group = ($nic | select NetworkName).NetworkName 
+  $mac = ($nic | select MacAddress).MacAddress 
+  $name_nic = $nic.Name
+  foreach($guest_adp in $rr)
+  {
+   $name_nic = $net_adp.Name
+   $name_adapter = (($guest_adp | select name)).name 
+   $ipaddr = ($guest_adp | Select-Object ip).ip 
+   $subnet = ($guest_adp | select subnetmask).subnetmask 
+   $gateway = ($guest_adp | select defaultgateway).defaultgateway 
+   $pdnswins = ($guest_adp | select dns).dns[0] 
+   $sdnswins = ($guest_adp | select dns).dns[1] 
+   $ip_policy = $guest_adp.IPPolicy
+   $mac1 = ($guest_adp | select mac).mac
+  $mac2 = $mac1.replace("-" , ":")
+  if($mac -eq $mac2)
+  {
+  #--------------------#
+  $IP = $vmname
+  $ping = New-Object System.Net.NetworkInformation.Ping
+ try
+ {
+ $status = [string]($ping.Send($IP)).Status
+ $address = [string]($ping.Send($IP)).Address
+ }
+ catch [System.Net.NetworkInformation.PingException]{$status = $null}
+ switch($status)
+ {
+ Success 
+ {
+ Write-Host "$vm is up with IP: $address" -foregroundcolor Green
+ $NewString = "$vm is up with IP: $address"
+}
+Default 
+ {
+ Write-Host "$vmname not responding. IP: $IP Power State: $PowerState Network: $NetworkName Network Connected: $connState" -foregroundcolor RED
+ $NewString = "$vm not responding. IP: $IP Power State: $PowerState Network: $NetworkName Network Connected: $connState"
+ }
+ }
+   #--------------------#
+   $vln_ID_modified = ".$vln_ID."
+ $match_gateway = $gateway.Split(".")
+ $match_Ipaddr = $ipaddr.Split(".")
+    if((($match_Ipaddr[0] -eq $match_gateway[0]) -and ($match_Ipaddr[1] -eq $match_gateway[1]) -and ($match_Ipaddr[2] -eq $match_gateway[2]) -and ($ip_policy -eq "static") ) -or ($ipaddr -eq $address))
+   {
+ $name_nic = $net_adp.Name
+   $name_adapter = (($guest_adp | select name)).name 
+   $ipaddr = ($guest_adp | Select-Object ip).ip 
+   $subnet = ($guest_adp | select subnetmask).subnetmask 
+   $gateway = ($guest_adp | select defaultgateway).defaultgateway 
+   $pdnswins = ($guest_adp | select dns).dns[0] 
+   $sdnswins = ($guest_adp | select dns).dns[1] 
+   $ip_policy = $guest_adp.IPPolicy
+ Write-Host "The VM name $vmname"
+   Write-Host "The VM name $name_adapter"
+   write-host "physical nic name $name_nic"
+   Write-Host "The VM name $mac"
+   Write-Host "The Prod IP $ipaddr"
+   Write-Host "The Subnet $subnet"
+   Write-Host "The Gateway $gateway"
+   Write-Host "The Primery DNS $pdnswins"
+   Write-Host "The Secondary DNS $sdnswins"
+ Write-Host "The Secondary DNS $port_group"
+ Write-Host "the nic policy is  $ip_policy"
+ Write-Host "delete the nic from the VM"
+ ######################
+ $hh =  Get-View -ViewType virtualmachine -Filter @{"name" = $vmname}
+ $adp_details = $hh.Config.Hardware.Device | %{$_.GetType()}
+ $correct_MAC = $hh.Config.Hardware.Device | Where {$_ -is [VMware.Vim.VirtualE1000]}
+ $network_device1 = $correct_MAC | where {$_.MacAddress -eq $mac}
+ $mac_address = $network_device1.MacAddress
+ $address_type = $network_device1.AddressType
+ $key = $network_device1.Key
+ $port_name = $network_device1.deviceinfo.Summary
+ $name_adapter = $network_device1.deviceinfo.label
+ $slot_details = $network_device1.SlotInfo.PciSlotNumber
+ $Control_key = $network_device1.ControllerKey
+ $Unit_number = $network_device1.UnitNumber
+ $mac_address = $network_device1.MacAddress
+ $change_version = $network_device1.Config.ChangeVersion
+ $id = $hh.MoRef
+ $status = $network_device1.Connectable.Status
+ $connection = $network_device1.Connectable.Connected
+ $guest_control = $network_device1.Connectable.AllowGuestControl
+ $start_connected = $network_device1.Connectable.StartConnected
+ $auto_detect = $network_device1.Backing.UseAutoDetect
+ $wateup = $network_device1.WakeOnLanEnabled
+ $spec = New-Object VMware.Vim.VirtualMachineConfigSpec  
+    $spec.deviceChange = New-Object VMware.Vim.VirtualDeviceConfigSpec[] (1)  
+    $spec.deviceChange[0] = New-Object VMware.Vim.VirtualDeviceConfigSpec  
+    $spec.deviceChange[0].operation = "remove"  
+    $spec.deviceChange[0].device = New-Object VMware.Vim.VirtualE1000  
+    $spec.deviceChange[0].device.key = $key
+    $spec.deviceChange[0].device.deviceInfo = New-Object VMware.Vim.Description  
+    $spec.deviceChange[0].device.deviceInfo.label = $name_adapter 
+    $spec.deviceChange[0].device.deviceInfo.summary = $port_name
+    $_this = Get-View -Id $id  
+    $_this.ReconfigVM($spec)  
+ ######################
+ start-sleep 07
+ $New_nic = New-NetworkAdapter -VM $vmname  -NetworkName $port_group -StartConnected:$true -Type Vmxnet3 -WakeOnLan:$true -Confirm:$false
+ Start-Sleep 25
+ $new_nic_mac = $New_nic.MacAddress
+ Get-NetworkAdapter -VM $vmname | where {$_.MacAddress -eq "$new_nic_mac"}
+ $New_os_adp_list = Get-VMGuestNetworkInterface -VM $vmname  -GuestCredential $GuestCred
+  foreach($guest_adp in $New_os_adp_list)
+   {
+    $mac1 = ($guest_adp | select mac).mac
+   $mac2 = $mac1.replace("-" , ":")
+   if($new_nic_mac -eq $mac2)
+   {
+   Set-VMGuestNetworkInterface  -VMGuestNetworkInterface $guest_adp   -GuestCredential $GuestCred  -IP $ipaddr -Netmask $subnet -Gateway $gateway -DNS $pdnswins,$sdnswins -WINS $pdnswins,$sdnswins -Confirm:$false
+   }
+   }
+ }
+  }
+ }
+ }
