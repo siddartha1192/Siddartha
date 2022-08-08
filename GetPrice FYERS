@@ -1,0 +1,15 @@
+function Get-FyersStockPrice($token,$StockName='NIFTYBANK-INDEX')
+
+{
+
+$uri = 'https://api.fyers.in/data-rest/v2/quotes/?symbols=NSE:' + $StockName
+
+#Write-Host "$uri"
+
+$http_ps_object = Post-FyersAPI -uri $uri -token $token -method GET
+
+
+
+return $http_ps_object.d.v.lp
+
+}
