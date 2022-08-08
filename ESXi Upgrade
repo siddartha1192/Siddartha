@@ -1,0 +1,33 @@
+$vCenter = Read-Host "provide the vcnter name :"
+$pass = Get-Credential
+Connect-VIServer $vCenter -Credential $pass
+$cluster = Read-Host "give me the cluster name "
+$get_host = Get-Cluster $cluster | Get-VMHost
+$gg = 1
+foreach($hostdata in $get_host)
+{
+$gg = 1 + $gg
+ if ($gg -gt 2 )
+ {
+ Start-Sleep -s  580
+ get-vmhost $past_host | % {
+    $view = get-view $_.id
+    $view.ReconnectHost()
+  }
+Set-VMHost -VMHost $past_host -State "Connected"
+}
+$uu = $hostdata | select name
+$name = $uu.Name
+$past_host = $name
+Write-Host "ESX host $name is now going to maintenance mode...check the progress in vCenter" -BackgroundColor Black -ForegroundColor White
+Set-VMHost -VMHost $name -State "Maintenance"
+$yy = Get-VMHost $name | select state
+$tt = $yy.State
+if($tt -eq "Maintenance")
+{
+$aa = Get-EsxCli -VMHost $name
+$aa.software.profile.update(0,"/vmfs/volumes/DS_name/ESXi550-201502001.zip",0,0,1,0,0,"ESXi-5.5.0-20150204001-standard")
+Restart-VMHost $name
+}
+}
+Disconnect-VIServer $vCenter -Confirm:$false
