@@ -1,0 +1,22 @@
+$vCenter = Read-Host "Please 1st vCenter :"
+$pass = Get-Credential
+Connect-VIServer $vCenter -Credential $pass 
+$gg = get-view -ViewType HostSystem
+foreach ($host1 in $gg )
+{
+$kk = get-view $host1.parent | select name
+$ii = get-view $host1.parent
+$Host_Name = $host1.name
+$Version = $host1.Config.Product.Version
+$Build = $host1.Config.Product.Build
+$cluster = $mm
+$ApiVersion = $host1.Config.Product.ApiVersion
+$Full_detail = $host1.Config.Product.FullName
+$OutputDatastores100 += @($ii | Select-Object name,@{N = "Version_details"  ; E = {$Version}},
+ @{N = "ESX_Build_detail"  ; E = {$Build}},
+ @{N = "ESX_Name"  ; E = {$Host_Name}},
+ @{N = "ESX_ApiVersion"  ; E = {$ApiVersion}},
+ @{N = "Complete_detail"  ; E = {$Full_detail}}) 
+}
+$OutputDatastores100 | Export-Csv c:\build_detail.csv
+disConnect-VIServer $vCenter -Confirm:$false
