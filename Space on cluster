@@ -1,0 +1,50 @@
+$vCener = Read-Host "Give me the vCenter name to login:-"
+$pass = Get-Credential
+connect-viserver $vCener -Credential $pass
+$Datastores33 = Get-View -ViewType datastore
+$z = 0 
+$y = 0 
+$a = 0 
+$b = 0 
+$c = 0 
+$u = 0
+foreach ($Datastores100 in $Datastores33)
+{
+$u = 1 + $u
+$OutputDatastores101 += @($Datastores100 | Select-Object Name, @{N="Type";E={$Datastores100.Summary.Type}},
+@{N="Capacity_inGB";E={[math]::Round($Datastores100.Summary.Capacity/1GB,0)}},
+@{N="Free_space";E={[math]::Round($Datastores100.Summary.Freespace/1GB,0)}},
+@{N="Percentage_free";E={[math]::Round(($Datastores100.Summary.Freespace/$Datastores100.Summary.Capacity)*100,0)}})
+$jj = [math]::Round($Datastores100.Summary.Capacity/1GB,0)
+$gg = [math]::Round($Datastores100.Summary.Freespace/1GB,0)
+$hh = [math]::Round(($Datastores100.Summary.Freespace/$Datastores100.Summary.Capacity)*100,0)
+If ($jj -le 500 )
+{
+$z = 1 + $z
+}
+If ($hh -le 20 )
+{
+$y = 1 + $y
+}
+If ($gg -le 5 )
+{
+$a = 1 + $a
+}
+If ($hh -gt 70 )
+{
+$b = 1 + $b
+}
+If ($jj -gt 800 )
+{
+$c = 1 + $c
+}
+}
+Write-Output $global:DefaultVIServer
+Write-Output "The number of Data store in the vCenter = $u"
+Write-Output "The number of Data store having less than 500GB as per capacity = $z"
+Write-Output "The number of Data store having more than 800GB as per capacity = $c"
+Write-Output "The number of Data store having less than required buffer space(20%) = $y"
+Write-Output "The number of Data store having less than 5GB free space = $a"
+Write-Output "The number of Data store having more than 70% free space = $b"
+$OutputDatastores101 | Export-Csv # provide the path
+Disconnect-VIServer $vCener -Confirm:$false
