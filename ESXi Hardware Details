@@ -1,0 +1,45 @@
+function serial([string]$host3)
+{
+Connect-VIServer $host3 -User <use_name> -Password <password>
+$host1 = Get-VIEw -ViewType hostsystem
+$i = 0
+foreach ($host2 in $host1)
+{
+$i = 1  + $i
+$name = $host2.name
+$esxcli = Get-EsxCli -VMHost $name
+$SN22 += @($host2 | Select-Object name, @{N = "Serial Number"; E = {($esxcli.hardware.platform.get()).serialnumber}},
+                                    @{N = "Product Name"; E = {($esxcli.hardware.platform.get()).ProductName}},
+                                    @{N = "Vender Name"; E = {($esxcli.hardware.platform.get()).VendorName}},
+                                    @{N = "UUID"; E = {($esxcli.hardware.platform.get()).UUID}})
+}
+Write-Output "enter the path details to get the file in csv, example:  c:\test.csv "
+$SN22 | Export-Csv
+}
+function serial_esx([string]$host3,[string]$ESX_name)
+{
+Connect-VIServer $host3 -User <use_name> -Password <password>
+$host1 = Get-VIEw -ViewType hostsystem -Filter @{"name" = "$ESX_name"}
+$name = $host2.name
+$esxcli = Get-EsxCli -VMHost $ESX_name
+$SN22 = @($host2 | Select-Object name, @{N = "Serial Number"; E = {($esxcli.hardware.platform.get()).serialnumber}},
+                                    @{N = "Product Name"; E = {($esxcli.hardware.platform.get()).ProductName}},
+                                    @{N = "Vender Name"; E = {($esxcli.hardware.platform.get()).VendorName}},
+                                    @{N = "UUID"; E = {($esxcli.hardware.platform.get()).UUID}})
+$SN22
+disConnect-VIServer $host3 -Confirm:$false
+}
+$gg = Read-Host "press 1 to get the serial number for complete VC
+                        press 2 to get the serial number for for only one ESX
+                        Now  press and enter "
+if ($gg -eq "1")
+{
+$read_vc = Read-Host " please enter the VC name  "
+serial $read_vc
+}
+if ($gg -eq "2")
+{
+$read_vc = Read-Host " please enter the VC name  "
+$read_ESX = Read-Host " please enter the ESX name with xxxx.enterprisenet.org "
+serial_esx $read_vc $read_ESX
+}
