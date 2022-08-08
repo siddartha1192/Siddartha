@@ -1,0 +1,61 @@
+function Post-FyersAPI($uri,$token,$method,$body)
+
+{
+
+    for($i = 1;$i -le 5;$i++)
+
+        {
+
+            try
+
+            {
+
+            if($body)
+
+            {
+
+            $data = Invoke-WebRequest -Method $method -Uri $uri -Headers @{"Authorization"=$token} -Body $body  -ContentType 'application/json'
+
+            }
+
+            else
+
+            {
+
+            $data = Invoke-WebRequest -Method $method -Uri $uri -Headers @{"Authorization"=$token} -ContentType 'application/json'
+
+            }
+
+            $http_ps_object = $data.Content | ConvertFrom-Json
+
+                if($http_ps_object)
+
+                {
+
+                return $http_ps_object
+
+                }
+
+                else
+
+                {
+
+                Start-Sleep -Seconds 2
+
+                }
+
+            }
+
+            catch
+
+            {
+
+            Write-Host "There is error cought while getting the REST response : $_"
+
+            Start-Sleep -Seconds 2
+
+            }
+
+        }
+
+}
