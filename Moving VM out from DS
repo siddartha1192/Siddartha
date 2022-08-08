@@ -1,0 +1,76 @@
+#connect the vCenter
+Connect-VIServer #####-User ######-Password ######
+#function for VM migration with required DS
+function migratios($vm,$DS_Name_source)
+{
+#get the VM and ESX details 
+$each_vm = Get-View -ViewType virtualmachine -Filter @{"name" = "$vm"}
+$esx1 = Get-VM $vm | Get-vmhost
+$esx = $esx1.name
+#get the Disk details and teh disk size
+$disk = Get-VM $vm |Get-HardDisk | where {$_.Filename -like "*$DS_Name_source*"}
+$size = Get-VM $vm |Get-HardDisk | where {$_.Filename -like "*$DS_Name_source*"} | select capacityGB
+#get the total size(GB) of the disk for the one/currect VM  which preset in the DS
+foreach ($size1 in $size)
+{
+$size11 = $size1.CapacityGB
+$sixe_total = $size11 + $sixe_total
+}
+#calculate the total size you need to migrate the disk
+$require_size = $sixe_total + 400
+#get the datastore according your required space and if some paticular condition 
+$oo1 = Get-VMHost $esx | Get-Datastore | where {($_.FreeSpaceGB -gt "$require_size") }
+foreach($ds_name in $oo1)
+{
+}
+#if there is no DataStore preset having total free space required then check the datastore space and migrate different disk in different datastore
+if($oo1 -eq $null)
+{
+foreach($disk1 in $disk)
+{
+$require = $disk1.CapacityGB
+$require1 = $require + 200
+$capacity  = Get-VMHost $esx | Get-Datastore | where {($_.FreeSpaceGB -gt "$require1") }
+$capacity = $capacity | Get-Random
+Move-HardDisk -HardDisk $disk1 -datastore $capacity  -Confirm:$false
+#Start-Sleep 300
+}
+}
+#if the total size is less than 150GB
+if($require_size -lt 150)
+{
+foreach($disk1 in $disk)
+{
+Move-HardDisk -HardDisk $disk1 -datastore $ds_name  -Confirm:$false
+#Start-Sleep 300
+}
+}
+#if the total size is greater than 150GB
+if($require_size -gt 150)
+{
+foreach($disk1 in $disk)
+{
+Move-HardDisk -HardDisk $disk1 -datastore $ds_name  -Confirm:$false
+#Start-Sleep 350
+}
+}
+}
+# funtion to get teh vms in a paticular datastore
+function migration([string]$DS_Name123,[string]$ESX_Name)
+{
+$oo = Get-VMHost $ESX_Name | Get-Datastore | where {$_.name -eq $DS_Name123}
+foreach ($ds in $oo)
+{
+$vm = $ds | Get-VM
+foreach ($each_vm in $vm)
+{
+$each_vm1 = $each_vm.name
+#call the VM migration fuction
+migratios $each_vm1 $DS_Name123
+}
+}
+}
+#call the migation function and give the DS name and respective ESX name
+migration "Nadaypur#####" "daye##########"
+migration "Nadaypur#####" "dayesx########"
+Disconnect-VIServer $global:DefaultVIServers -Confirm:$false
