@@ -1,0 +1,17 @@
+function Get-M2M($token)
+
+{
+
+
+
+$positions = Post-FyersAPI -uri 'https://api.fyers.in/api/v2/positions' -token $token -method 'GET' 
+
+$positions.netPositions | where {$_.netQty -eq 0} | Out-Null
+
+$m2m = 0
+
+$positions.netPositions | %{$m2m = $_.pl + $m2m}
+
+return $m2m
+
+}
