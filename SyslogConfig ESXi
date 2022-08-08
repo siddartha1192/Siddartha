@@ -1,0 +1,50 @@
+Connect-VIServer <VC_name> -user ######## -Password #########
+$changedValue = New-Object VMware.Vim.OptionValue[] (14)
+$changedValue[0] = New-Object VMware.Vim.OptionValue
+$changedValue[0].key = "Syslog.global.defaultRotate"
+$changedValue[0].value = 50
+$changedValue[1] = New-Object VMware.Vim.OptionValue
+$changedValue[1].key = "Syslog.global.defaultSize"
+$changedValue[1].value = 5120
+$changedValue[3] = New-Object VMware.Vim.OptionValue
+$changedValue[3].key = "Syslog.loggers.hostd.rotate"
+$changedValue[3].value = 100
+$changedValue[4] = New-Object VMware.Vim.OptionValue
+$changedValue[4].key = "Syslog.loggers.hostd.size"
+$changedValue[4].value = 10240
+$changedValue[5] = New-Object VMware.Vim.OptionValue
+$changedValue[5].key = "Syslog.loggers.vmkernel.rotate"
+$changedValue[5].value = 100
+$changedValue[6] = New-Object VMware.Vim.OptionValue
+$changedValue[6].key = "Syslog.loggers.vmkernel.size"
+$changedValue[6].value = 10240
+$changedValue[7] = New-Object VMware.Vim.OptionValue
+$changedValue[7].key = "Syslog.loggers.vmkeventd.rotate"
+$changedValue[7].value = 50
+$changedValue[8] = New-Object VMware.Vim.OptionValue
+$changedValue[8].key = "Syslog.loggers.vmkeventd.size"
+$changedValue[8].value = 5120
+$changedValue[9] = New-Object VMware.Vim.OptionValue
+$changedValue[9].key = "Syslog.loggers.vmkwarning.rotate"
+$changedValue[9].value = 100
+$changedValue[10] = New-Object VMware.Vim.OptionValue
+$changedValue[10].key = "Syslog.loggers.vmkwarning.size"
+$changedValue[10].value = 10240
+$changedValue[11] = New-Object VMware.Vim.OptionValue
+$changedValue[11].key = "Syslog.loggers.vobd.rotate"
+$changedValue[11].value = 50
+$changedValue[12] = New-Object VMware.Vim.OptionValue
+$changedValue[12].key = "Syslog.loggers.vobd.size"
+$changedValue[12].value = 5120
+$changedValue[13] = New-Object VMware.Vim.OptionValue
+$changedValue[13].key = "Syslog.loggers.vpxa.rotate"
+$changedValue[13].value = 50
+$qqqq00 = Get-VMHost <ESX_name> | Get-View
+$host123 = $qqqq00.ConfigManager.AdvancedOption
+$_this = Get-View -Id $host123
+$_this.UpdateOptions($changedValue)
+$test = Get-EsxCli -vmhost <ESX_name>
+$test.system.syslog.config.set(50,5120,$null,"/vmfs/volumes/<DS_name>/.locker1_<folder_name>")
+$test.system.syslog.reload()
+get-VMHostService -VMHost <ESX_name> | Restart-VMHostService -Confirm:$false
+Disconnect-VIServer $global:DefaultVIServers -Confirm:$false
