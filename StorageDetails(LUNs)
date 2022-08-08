@@ -1,0 +1,86 @@
+get-date
+$list  = Import-Csv c:\Scripts\EMC_VSI_Report\input.csv
+foreach($list1 in $list)
+{
+Connect-VIServer ($list1.vCenter) -User ($list1.Id) -Password ($list1.Password) -WarningAction 0 | out-null
+$esxi = $list1.ESX
+$cluster = $list1.Name_cluster
+$naa = "naa."
+Write-Host "Collecting details for the ESX $esxi"
+#get the DS names and the full list
+Write-Host "getting the DS details"
+$DS = get-vmhost $esxi | Get-Datastore | Get-View
+$DS_uuid += @($DS | select name,@{n = "uuid" ; e = {$_.Info.Vmfs.extent.diskname}})
+#get the view details of the VMs in the cluster/ESX
+Write-Host "getting the RDM details"
+if($cluster)
+{
+$vm_view = Get-Cluster $cluster | Get-VM | Get-View |where {$_.config -ne $null}|  %{
+   $vm = $_
+  $vm.Config.Hardware.Device | where {$_.gettype().Name -eq "VirtualDisk"} | %{
+    if("physicalMode","virtualmode" -contains $_.Backing.CompatibilityMode){
+      $disk12 += @($_ | select @{n = "VM name" ; e = {$vm.name}}, @{n = "RAW_LUN_ID" ; e = {$naa + ($_.Backing.LunUuid.Substring(10,32))}})
+   }}}
+}
+else
+{
+$vm_view = Get-vmhost $esxi | Get-VM | Get-View |where {$_.config -ne $null}|  %{
+  $vm = $_
+  $vm.Config.Hardware.Device | where {$_.gettype().Name -eq "VirtualDisk"} | %{
+    if("physicalMode","virtualmode" -contains $_.Backing.CompatibilityMode){
+      $disk12 += @($_ | select @{n = "VM name" ; e = {$vm.name}}, @{n = "RAW_LUN_ID" ; e = {$naa + ($_.Backing.LunUuid.Substring(10,32))}})
+   }}}
+}
+####################################################
+#get the scsi lun details 
+Write-Host "getting the scsi lun details"
+$scsilun = get-vmhost $esxi | Get-ScsiLun
+#get the scsi path details
+Write-Host "getting the scsi path details"
+$scsipath = get-vmhost $esxi | Get-ScsiLun | Get-ScsiLunPath
+#get all the uuid from scsi path variable 
+$scsipathname = $scsipath | select name 
+foreach($lunpath in ($scsipathname.name))
+{
+$uuidarray += @(($lunpath.Split("-"))[2])
+}
+#count the path according to the scsilun ( cononical name )varibale comaparing to the uuid array
+Write-Host "counting the paths and making output ready"
+if($output){Remove-Variable -name 'output'}
+foreach($lun in $scsilun)
+{
+$cononical = $lun.CanonicalName
+$pathcount = $uuidarray | where {$_ -eq ($lun.CanonicalName)}
+#Get the VM details according to the LUN Name
+$rdm_vm_name = $disk12 | where {$_.RAW_LUN_ID -eq $cononical}
+foreach($rdm_vm_name1 in $rdm_vm_name)
+{
+$rdm_vm_name2 += $rdm_vm_name1."vm name"
+}
+##############################################
+$output += @($lun | select RuntimeName, 
+ @{n = "UUID" ; e = {$_.CanonicalName}},
+ @{n = "Datastore Name" ; e = {($DS_uuid | where {$_.uuid -like $cononical} ).name}},
+ @{n = "RDM VM" ; e = {$rdm_vm_name2}},
+ @{n = "Path Count" ; e = {($uuidarray | where {$_ -eq $cononical}).count}},
+ Vendor,
+ @{n = "CapacityGB" ; e = {[math]::Round($_.CapacityGB)}},
+ MultipathPolicy,
+ VMHost,
+ @{n = "IS Local storage" ; e = {$_.Islocal}},
+ @{n = "OperationalState" ; e = {$_.ExtensionData.OperationalState}},
+ @{n = "Model" ; e = {$_.ExtensionData.Model}}
+ )
+if ($rdm_vm_name2){Remove-Variable -name rdm_vm_name2}
+}
+ $out = $esxi + "EMC VSI Report"
+$output  |  Export-Csv c:\" "$out"".csv
+Disconnect-VIServer $global:DefaultVIServer -Confirm:$false
+$output  | Out-GridView
+remove-variable output,out,vm,rdm_vm_name,rdm_vm_name1,esxi,uuidarray,list1,pathcount,cononical,lun,scsilun,scsipathname,lunpath,disk12,vm_view,DS,DS_uuid,cluster -ErrorAction:SilentlyContinue
+}
+if(($host.Version) -like "3.*")
+{
+$output  | Out-GridView
+}
+Get-Date
