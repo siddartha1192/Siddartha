@@ -1,0 +1,39 @@
+function Put-SLOrder($token,$stoploss_price,$symbol,$buy_sell)
+
+{
+
+if($buy_sell -eq -1)
+
+{
+
+$stoploss_price  = [math]::Round($stoploss_price)
+
+$limitPrice = $stoploss_price - 10
+
+
+
+}else{}
+
+if($buy_sell -eq 1)
+
+{
+
+[math]::Round($stoploss_price)
+
+$limitPrice = $stoploss_price - 10
+
+}
+
+$json = $host | select @{n='symbol';e={$symbol}},@{n='qty';e={25}},@{n='type';e={4}},@{n='side';e={$buy_sell}},@{n='productType';e={'INTRADAY'}},@{n='limitPrice';e={$limitPrice}},@{n='stopPrice';e={$stoploss_price}},@{n='disclosedQty';e={0}},@{n='validity';e={'DAY'}},@{n='offlineOrder';e={'False'}},@{n='stopLoss';e={0}},@{n='takeProfit';e={0}} | ConvertTo-Json
+
+$json
+
+
+
+$OrderStatus = Post-FyersAPI -method 'POST' -uri 'https://api.fyers.in/api/v2/orders' -token $token -body $json
+
+$OrderStatus.message
+
+return $OrderStatus
+
+}
