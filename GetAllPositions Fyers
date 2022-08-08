@@ -1,0 +1,27 @@
+function Get-Allposition($token)
+
+{
+
+try{
+
+    $json = $host | select @{n='symbol';e={'NSE:SBIN-EQ'}} | ConvertTo-Json
+
+    
+
+    $OrderStatus = Post-FyersAPI -method 'GET' -uri  'https://api.fyers.in/api/v2/positions' -token $token 
+
+     return $OrderStatus.netPositions 
+
+    }
+
+catch
+
+{
+
+Write-Host "Error: $_"
+
+}
+
+
+
+}
