@@ -1,0 +1,10 @@
+connect-viserver VC_Name -User <user_name> -Password <password>
+$eHost = Get-Datacenter DAY | Get-VMHost
+Foreach ($ESX in $eHost ) 
+{
+$ESX | Select-Object name
+$ESXCLI = Get-EsxCli -VMHost $ESX
+$test34 += $ESXCLI.software.vib.list() | Select AcceptanceLevel,ID,InstallDate,Name,ReleaseDate,Status,Vendor,Version,@{ Name="ESX name"; Expression={$ESX.Name}}
+}
+$test34 | Export-Csv c:\124.csv
+Disconnect-VIServer VC_Name -Confirm:$false
