@@ -1,0 +1,70 @@
+$input1 = Import-Csv c:\Scripts\DS_folder_search\folder_search.csv
+foreach($data in $input1)
+{
+Connect-VIServer ($data.vc) -User ($data.user_id) -Password ($data.password) -WarningAction:SilentlyContinue
+$searchSpec = New-Object VMware.Vim.HostDatastoreBrowserSearchSpec
+$searchSpec.query = New-Object VMware.Vim.FileQuery[] (2)
+$searchSpec.query[0] = New-Object VMware.Vim.FolderFileQuery
+$searchSpec.query[1] = New-Object VMware.Vim.FileQuery
+$searchSpec.details = New-Object VMware.Vim.FileQueryFlags
+$searchSpec.details.fileType = $true
+$searchSpec.details.fileSize = $true
+$searchSpec.details.modification = $true
+$searchSpec.details.fileOwner = $true
+$searchSpec.searchCaseInsensitive = $true
+$searchSpec.matchPattern = New-Object System.String[] (1)
+$searchSpec.matchPattern[0] = "*"
+$searchSpec.sortFoldersFirst = $true
+$ds = $data.DS_name
+$ds_view = ((Get-Datastore $ds | Get-View).moref).value
+$var0 = 'HostDatastoreBrowser-datastoreBrowser-'
+$ds_view1 = $var0 + $ds_view
+$_this = Get-View -Id $ds_view1
+$search_result = $_this.SearchDatastoreSubFolders("[$ds]", $searchSpec)
+foreach($folder in $search_result)
+{
+ $folder_name = $folder.folderpath
+ $folder_name
+ if($folder_name -like "*/")
+ {
+ if($folder_name -like "*.naa.*" -or $folder_name -like "*.vSphere-HA*")
+ {
+ write "default DS"
+ }
+ else
+ {
+ write "check the folder $folder_name"
+ $count += @(($folder_name.Split("]")[1]).split("/")[0])
+ $folder_out_name += ($folder_name.Split("]")[1]).split("/")[0]
+ $files = $folder.File 
+ foreach($file in $files)
+ {
+ $filesize += (($file | select filesize).filesize)
+ }
+ $filesize = [math]::Round((($filesize/1024)/1024)/1024)
+ $filesize
+ $output += @($host | select @{n = "DS Name" ; e= {$ds}},@{n = "Folder Name"; e= {($folder_name.Split("]")[1]).split("/")[0]}},@{n = "Folder Size(GB)" ; e = {$filesize}} )
+ Remove-Variable -Name filesize,count
+ }
+ }
+ else
+ {
+ $files = $folder.File 
+ foreach($file in $files)
+ {
+ $filesize += (($file | select filesize).filesize)
+ }
+ $filesize = [math]::Round((($filesize/1024)/1024)/1024)
+ $filesize
+ $output += @($host | select @{n = "DS Name" ; e= {$ds}},@{n = "Folder Name"; e= {" Root Path"}},@{n = "Folder Size(GB)" ; e = {$filesize}} )
+ Remove-Variable -Name filesize
+ }
+}
+}
+write "
+The DS name "$data.DS_name"
+The files name are $folder_out_name
+"
+$usersprofilepath = get-content env:userprofile
+$output | Export-Csv -path "$usersprofilepath\Desktop\ds_folder_details.csv"
+Remove-Variable -Name folder_out_name,output
