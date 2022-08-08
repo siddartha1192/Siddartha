@@ -1,0 +1,64 @@
+$list = Import-Csv c:\Scripts\data_store_path_check\input_path.csv
+foreach($list_details in $list)
+{
+$VC_name = $list_details.VC_name
+$use_name = $list_details.USER_ID
+$pa = $list_details.Password
+$cu = $list_details.cluster_name_details
+Connect-VIServer $VC_name -User $use_name -Password $pa -WarningAction SilentlyContinue
+$initalTime = Get-Date
+$filepath = "C:tmp"
+$filename = "LunPathState"
+$date = Get-Date ($initalTime) -uformat %Y%m%d
+$time = Get-Date ($initalTime) -uformat %H%M
+#$cluster = Read-Host  "enter the Cluster name "
+Write-Host "$(Get-Date ($initalTime) -uformat %H:%M:%S) - Starting"
+ $cluser  = Get-Cluster $cu | Get-VMHost
+ foreach($AllHosts1 in $cluser)
+ {
+$AllHosts = Get-VMHost $AllHosts1 | Sort Name
+$AllHosts1_name = $AllHosts1.name
+Write-Host "Checking the  paths  per each datastore in ESX $AllHosts1_name"
+$reportLunPathState2 = @()
+#Write-Host "$(Get-Date -uformat %H:%M:%S) - $($AllHosts.length) hosts acquired"
+$i = 0
+$ds_view  = Get-VMHost $AllHosts1 | Get-Datastore | Get-View 
+$ds_view_count = $ds_view.Count
+ $VMHostScsiLuns = $AllHosts | Get-ScsiLun -LunType disk 
+foreach ($ds_view1 in $ds_view)
+{
+$UUID = $ds_view1.Info.Vmfs.extent.diskname
+ $VMHostScsiLuns1 = $VMHostScsiLuns | where {$_.CanonicalName -eq $UUID}
+    ForEach ($VMHostScsiLun in $VMHostScsiLuns1) {
+ $canonical_name = $VMHostScsiLun.CanonicalName
+ if ($canonical_name -eq  $UUID)
+ {
+ $i++
+        $VMHostScsiLunPaths = $VMHostScsiLun | Get-ScsiLunPath
+        $reportLunPathState2 += ($VMHostScsiLunPaths | Measure-Object) | Select @{N="Hostname"; E={$AllHosts.Name}}, @{N="Number of Paths"; E={$_.Count}},  State,@{N="Data store name"; E= {$ds_view1.Name}},Name
+        $reportLunPathState2 += $VMHostScsiLunPaths | Select @{N="Hostname"; E={$AllHosts.Name}}, @{N="Data_store_name"; E= {$ds_view1.Name}},"Number_of_Paths", State
+ $paths_count = $VMHostScsiLunPaths.count 
+ if ($paths_count -lt 4)
+ {
+ $issue_ds8 += @($ds_view1 | select Name,@{n = "ESX_name" ; e = {}})
+ }
+    }
+}
+}
+$conclusionTime = Get-Date
+Write-Host "$(Get-Date ($conclusionTime) -uformat %H:%M:%S) - Finished"
+$totalTime = New-TimeSpan $initalTime $conclusionTime
+Write-Host "$($totalTime.Hours):$($totalTime.Minutes):$($totalTime.Seconds) - Total Time"
+if ($i -ne $ds_view_count)
+{
+$AllHosts1_name = $AllHosts1.name
+Write-Host "The Path check is not done properly in $AllHosts1_name please check manually or verify with output"
+}
+$total_path8 += @($reportLunPathState2)
+}
+$total_path8 | Out-GridView -Title "Complete DS path details"
+$issue_ds8 | Out-GridView -Title "The DS having less than 4 paths"
+}
+Write-Host "The output file will be in the desktop with name $filepath$date$time"-"$filename"
+$total_path8 | Export-Csv $filepath$date$time"-"$filename".csv" -NoType
+######################################
