@@ -1,0 +1,129 @@
+function Get-BankniftyBuyingLevel($token,$CE_PE)
+
+{
+
+
+
+
+
+            $date = (Get-Date).AddDays(+1)
+
+           
+
+            while ($Date.DayOfWeek -ne "Thursday")
+
+            {
+
+            $date = $date.AddDays(1)
+
+            }
+
+            $month = ([string](Get-Culture).DateTimeFormat.GetMonthName(($date).Month).ToUpper()[0..2]).replace(' ','')[0]
+
+            if($date.Day -lt 10)
+
+            {
+
+
+
+            $Month_Day_argument = $month + '0' + [string]$date.Day
+
+            }else{}
+
+
+
+            if($date.Day -gt 9)
+
+            {
+
+            $Month_Day_argument = $month + $date.Day
+
+            }else{}
+
+
+
+            if($date.Day -gt 22)
+
+            {
+
+            $month = ([string](Get-Culture).DateTimeFormat.GetMonthName(($date).Month).ToUpper()[0..2]).replace(' ','')
+
+            $Month_Day_argument = $month 
+
+            }
+
+            
+
+   
+
+        
+
+$bankniftyPrice = Get-FyersStockPrice  -token $token 
+
+#write "$bankniftyPrice"
+
+
+
+
+
+    $roundedValue = [math]::Round($bankniftyPrice)
+
+    while(($roundedValue % 100) -ne 0)
+
+    {
+
+
+
+    if(($roundedValue%100) -ne 0)
+
+        {
+
+        $roundedValue++
+
+            if(($roundedValue%50) -eq 0)
+
+            {
+
+                if(($roundedValue%100) -ne 0)
+
+                {
+
+                $roundedValue = $roundedValue -50
+
+                break
+
+                }
+
+            }
+
+        }
+
+    }
+
+    if($CE_PE -eq 'CE')
+
+    {
+
+    $CE = 'NSE:' + "BANKNIFTY21" + $Month_Day_argument  + $roundedValue + "CE"
+
+    return $CE
+
+    }else{}
+
+    if($CE_PE -eq 'PE')
+
+    {
+
+    $PE = 'NSE:' + "BANKNIFTY21" + $Month_Day_argument + $roundedValue + "PE" 
+
+    return  $PE
+
+    }
+
+    else
+
+    {
+
+    }
+
+}
