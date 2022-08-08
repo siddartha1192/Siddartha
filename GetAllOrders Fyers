@@ -1,0 +1,14 @@
+function Get-AllOrders($token)
+
+{
+
+    
+
+    $OrderStatus = Post-FyersAPI -method 'GET' -uri 'https://api.fyers.in/api/v2/orders' -token $token 
+
+    $pending_Orders = $OrderStatus.orderBook
+
+    return $pending_Orders
+
+}
+
