@@ -386,3 +386,6 @@ if  check2
 //if ( hour(time) == 15 and minute(time) > 15)  
 //    strategy.close("BUY")
 //    strategy.close("SELL")
+
+
+//Settings - 20-3-700-80-30-60-30-200-15-15
