@@ -1,0 +1,1 @@
+Get-VISession | Where { $_.IdleMinutes -gt 5 } | Disconnect-ViSession
