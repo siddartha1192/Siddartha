@@ -1,0 +1,79 @@
+function inventory1([string]$VC,[string]$path1)
+{
+Connect-VIServer $VC -User <use_name> -Password <password>
+$host_details1 = Get-View -ViewType hostsystem 
+$param = @($null)
+$ServiceInstance = Get-View ServiceInstance
+$LicenseManager= Get-view $ServiceInstance.Content.LicenseManager
+$LicenseAssignmentManager= Get-View $LicenseManager.LicenseAssignmentManager
+$LicensesArrayList=New-Object System.Collections.ArrayList
+$LicenseAssignmentManager.GetType().GetMethod("QueryAssignedLicenses").Invoke($LicenseAssignmentManager,$param) |Foreach-Object{
+$License=New-Object -TypeName PsObject -Property @{ProductName=$null;Version=$null;Edition=$null;DisplayName=$null;PhysProcessors=$null;CoresPerCpu=$null;LicenseKey=$null}
+$License.ProductName= ($_.Properties.GetEnumerator()|?{$_.Key -eq 'ProductName'}).Value
+$License.Version= ($_.Properties.GetEnumerator()|?{$_.Key -eq 'ProductVersion'}).Value
+$License.Edition= $_.AssignedLicense.Name
+$License.DisplayName=$_.EntityDisplayName
+$License.LicenseKey= $_.AssignedLicense.LicenseKey
+    if($_.AssignedLicense.EditionKey -like "vco*"){
+            $License.DisplayName+=" Used: $($_.AssignedLicense.Used) from: $($_.AssignedLicense.Total)"
+        }
+    if($_.EntityId -like "host-*"){
+        $HostView=Get-View -Id  "HostSystem-$($_.EntityID)"
+        $License.PhysProcessors=$HostView.Hardware.CpuInfo.NumCpuPackages
+        $License.CoresPerCpu=$hostview.Hardware.CpuInfo.NumCpuCores/$HostView.Hardware.CpuInfo.NumCpuPackages
+    }
+        else {
+            $License.PhysProcessors="N/A"
+            $License.CoresPerCpu="N/A"
+        }
+$LicensesArrayList.Add($License)
+}
+function get-esxinventory($host_details1 , $LicensesArrayList , $path1 )
+{
+foreach ($host_details in $host_details1)
+{
+$Esx_name = $host_details.Name
+$cluster = (Get-cluster -VMHost $Esx_name).name
+$datacenter = Get-Datacenter -VMHost $Esx_name
+$cpu_model = $host_details.Summary.Hardware.CpuModel
+$speed = $host_details.Summary.Hardware.CpuMhz
+$cpu = $host_details.Summary.Hardware.NumCpuPkgs
+$core_per_cpu = $host_details.Summary.Hardware.NumCpuCores
+$memoryGB = (($host_details.Hardware.MemorySize/1024)/1024)/1024
+$nics = $host_details.Summary.Hardware.NumNics
+$HBA = $host_details.Summary.Hardware.NumHBAs
+$vm = ($host_details.vm).count
+$ESX_version = $host_details.Config.Product.FullName
+$vendor = $host_details.Hardware.SystemInfo.vendor
+$model = $host_details.Hardware.SystemInfo.Model
+foreach  ($data in $LicensesArrayList)
+{
+if($Esx_name -eq $data.DisplayName)
+{
+$esx_licence_key = $data.LicenseKey
+$esx_licence_Edition =$data.Edition
+}
+}
+$full_data += @($host_details | select name ,@{n ="Cluster" ; e = {$cluster}}, 
+ @{n = "Datacenter" ; e = {$datacenter}},
+ @{n = "Cpu_model" ; e = {$cpu_model}},
+ @{n = "Speed" ; e = {$speed}},
+ @{n = "Cpu" ; e = {$cpu}},
+ @{n = "Core per cpu" ; e = {$core_per_cpu}},
+ @{n = "MemoryGB" ; e = {$memoryGB}},
+ @{n = "Nics" ; e = {$nics}},
+ @{n = "HBAs" ; e = {$HBA}},
+ @{n = "VM Count" ; e = {$vm}},
+ @{n = "ESX versiont" ; e = {$ESX_version}},
+ @{n = "Vender" ; e = {$vendor}},
+ @{n = "Model" ; e = {$model}},
+ @{n = "Licence Key" ; e = {$esx_licence_key}},
+ @{n = "Licence Edition" ; e = {$esx_licence_Edition}}
+ )
+} 
+$full_data | Export-Csv $path1
+}
+get-esxinventory $host_details1 $LicensesArrayList $path1
+Disconnect-VIServer $global:DefaultVIServers -Confirm:$false
+}
+inventory1 "<ESX_name>" "<Path>"
