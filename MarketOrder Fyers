@@ -1,0 +1,27 @@
+function Put-MarketOrder($token,$symbol,$buy_sell,$quantity)
+
+{
+
+if($quantity)
+
+{
+
+$json = $host | select @{n='symbol';e={$symbol}},@{n='qty';e={$quantity}},@{n='type';e={2}},@{n='side';e={$buy_sell}},@{n='productType';e={'INTRADAY'}},@{n='limitPrice';e={0}},@{n='stopPrice';e={0}},@{n='disclosedQty';e={0}},@{n='validity';e={'DAY'}},@{n='offlineOrder';e={'False'}},@{n='stopLoss';e={0}},@{n='takeProfit';e={0}} | ConvertTo-Json
+
+}
+
+else
+
+{
+
+$json = $host | select @{n='symbol';e={$symbol}},@{n='qty';e={25}},@{n='type';e={2}},@{n='side';e={$buy_sell}},@{n='productType';e={'INTRADAY'}},@{n='limitPrice';e={0}},@{n='stopPrice';e={0}},@{n='disclosedQty';e={0}},@{n='validity';e={'DAY'}},@{n='offlineOrder';e={'False'}},@{n='stopLoss';e={0}},@{n='takeProfit';e={0}} | ConvertTo-Json
+
+}
+
+
+
+$OrderStatus = Post-FyersAPI -method 'POST' -uri 'https://api.fyers.in/api/v2/orders' -token $token -body $json
+
+write-host "$OrderStatus.message"
+
+}
