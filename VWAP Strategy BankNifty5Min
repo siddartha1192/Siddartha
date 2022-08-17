@@ -341,3 +341,4 @@ if  check2
 //if ( hour(time) == 15 and minute(time) > 25  )  
 //    strategy.close("BUY")
 //    strategy.close("SELL")
+//Enable Stop loss , disable TP
