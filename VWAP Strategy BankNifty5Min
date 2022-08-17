@@ -1,0 +1,343 @@
+//@version=4
+strategy("VWAP Delivery Strategy", overlay=true)
+
+
+
+// Conditions
+var highLine = line.new(x1=bar_index[10], y1=close[10],
+     x2=bar_index, y2=close, color=color.green,
+     extend=extend.both)
+
+var lowLine = line.new(x1=bar_index[10], y1=close[10],
+     x2=bar_index, y2=close, color=color.red,
+     extend=extend.both)
+
+
+// Get the price of the last opened long or short
+sl = 0.0
+tp =0.0
+SlowMA = input(20, "Fast Moving Avg.", type=input.integer)
+FastMA = input(3, "Slow Moving Avg.", type=input.integer)
+gridline = input(false, "GridLine.", type=input.bool)
+gridline1 = input(false, "Last Long Short Condition", type=input.bool)
+tp := input(60, "Take Profit ", type=input.float)
+sl := input(300, "Stop Loss ", type=input.float)
+tp := (tp/close)*100
+sl := (sl/close)*100
+
+
+BuyPrice = float(na)
+SellPrice = float(na)
+BuyPrice := crossover(ema(close, FastMA), ema(close, SlowMA)) ? high : nz(BuyPrice[1])
+SellPrice := crossover(ema(close, FastMA), ema(close, SlowMA)) ? low : nz(SellPrice[1])
+
+//if ((BuyPrice - SellPrice) < 100) and ((BuyPrice - SellPrice) > 50)
+//    BuyPrice := BuyPrice + 70
+//    SellPrice := SellPrice - 70
+
+//if (BuyPrice - SellPrice) <= 50
+//    BuyPrice := BuyPrice + 50
+//    SellPrice := SellPrice - 50
+
+BuyPrice1 = float(na)
+SellPrice1 = float(na)
+BuyPrice1 := crossunder(ema(close, FastMA), ema(close, SlowMA)) ? high : nz(BuyPrice1[1])
+SellPrice1 := crossunder(ema(close, FastMA), ema(close, SlowMA)) ? low : nz(SellPrice1[1])
+
+//if ((BuyPrice1 - SellPrice1) < 50) and ((BuyPrice1 - SellPrice1) > 20)
+//    BuyPrice1 := BuyPrice1 + 20
+//    SellPrice1 := SellPrice1 - 20
+
+//if (BuyPrice1 - SellPrice1) <= 20
+//    BuyPrice1 := BuyPrice1 + 50
+//    SellPrice1 := SellPrice1 - 50
+
+
+plot(gridline ? BuyPrice : na, style=plot.style_line, linewidth=1, color=color.green, editable=false)
+plot(gridline ? BuyPrice1: na, style=plot.style_line, linewidth=1, color=color.green, editable=false)
+plot(gridline ? SellPrice: na, style=plot.style_line, linewidth=2, color=color.red, editable=false)
+plot(gridline ? SellPrice1: na, style=plot.style_line, linewidth=2, color=color.red, editable=false)
+
+ref1 =  float(na)
+ref2 =  float(na)
+ShortTrailSL = float(na)
+LongTrailSL = float(na)
+long_sl = bool(na)
+short_sl = bool(na)
+long_tp = bool(na)
+short_tp = bool(na)
+ShortTrailTP = float(na)
+LongTrailTP = float(na)
+
+tpPrice1 = (1 + tp / 100) * BuyPrice
+tpPrice2 = (1 + tp / 100) * BuyPrice1
+tpPrice3 = (1 + tp / 100) * SellPrice
+tpPrice4 = (1 + tp / 100) * SellPrice1
+
+longCond = bool(na)
+shortCond = bool(na)
+longCond1 = bool(na)
+shortCond1 = bool(na)
+
+Target = input(60, "Buy after hitting target", type=input.integer)
+
+cumulativePeriod = input(70, "Period")
+
+typicalPrice = (high + low + close) / 3
+typicalPriceVolume = typicalPrice * volume
+cumulativeTypicalPriceVolume = sum(typicalPriceVolume, cumulativePeriod)
+cumulativeVolume = sum(volume, cumulativePeriod)
+vwapValue = cumulativeTypicalPriceVolume / cumulativeVolume
+plot(vwapValue)
+buy = crossover(close,vwapValue)
+sell = crossunder(close,vwapValue)
+
+
+longCond := buy
+         or ( crossover(open, (LongTrailTP[1] + Target)) and  ((LongTrailTP[1] + Target  >= tpPrice1 and close > LongTrailTP[1]) 
+         or (LongTrailTP[1] + Target >= tpPrice2 and close > LongTrailTP[1])) and ( ema(close,FastMA) > ema(close,SlowMA) ))
+
+shortCond := sell
+          or ( crossunder(open, (ShortTrailTP[1] - Target)) and  ((ShortTrailTP[1] - Target  <= tpPrice3 and close < ShortTrailTP[1]) 
+          or (ShortTrailTP[1] - Target <= tpPrice4 and close < ShortTrailTP[1]))  and ( ema(close,FastMA) < ema(close,SlowMA) ))
+
+// Count your long short conditions for more control with Pyramiding
+
+sectionLongs = 0
+sectionLongs := nz(sectionLongs[1])
+sectionShorts = 0
+sectionShorts := nz(sectionShorts[1])
+
+
+
+//if long_sl[1] == true or short_sl[1] == true or long_tp[1] == true or short_tp[1] == true
+//    sectionLongs := 0
+//    sectionShorts := 0
+    
+
+if longCond
+    sectionLongs := sectionLongs + 1
+    sectionShorts := 0
+    sectionShorts
+
+if shortCond
+    sectionLongs := 0
+    sectionShorts := sectionShorts + 1
+    sectionShorts
+
+// Pyramiding
+
+pyrl = 1
+
+// These check to see your signal and cross references it against the pyramiding settings above
+
+longCondition1 = longCond and sectionLongs <= pyrl
+shortCondition1 = shortCond and sectionShorts <= pyrl
+
+//--------------------------------------
+
+
+last_open_longCondition1 = float(na)
+last_open_shortCondition1 = float(na)
+last_open_longCondition1 := longCondition1 ? close : nz(last_open_longCondition1[1])
+last_open_shortCondition1 := shortCondition1 ? close : nz(last_open_shortCondition1[1])
+
+// Get the price of the last Low opened long or short
+last_High_longCondition1 = float(na)
+last_Low_shortCondition1 = float(na)
+last_High_longCondition1 := longCondition1 ? high : nz(last_High_longCondition1[1])
+last_Low_shortCondition1 := shortCondition1 ? low : nz(last_Low_shortCondition1[1])
+
+
+// Check if your last postion was a long or a short
+
+last_longCondition1 = float(na)
+last_shortCondition1 = float(na)
+last_longCondition1 := longCondition1 ? time : nz(last_longCondition1[1])
+last_shortCondition1 := shortCondition1 ? time : nz(last_shortCondition1[1])
+
+in_longCondition1 = last_longCondition1 > last_shortCondition1
+in_shortCondition1 = last_shortCondition1 > last_longCondition1
+
+plot(gridline1 ? last_High_longCondition1 : na, style=plot.style_line, linewidth=2, color=color.green, editable=false)
+plot(gridline1 ? last_Low_shortCondition1 : na, style=plot.style_line, linewidth=2, color=color.red, editable=false)
+
+//--------------------------------------
+
+longCond1 := last_High_longCondition1 < close and (last_High_longCondition1 > open or last_High_longCondition1 > open[1] ) and in_longCondition1
+shortCond1 := last_Low_shortCondition1 > close and (last_Low_shortCondition1 < open or last_Low_shortCondition1 < open[1]) and in_shortCondition1
+//longCond1 := last_High_longCondition1+40 < close and in_longCondition1
+//shortCond1 := last_Low_shortCondition1-40 > close and in_shortCondition1
+
+
+// Count your long short conditions for more control with Pyramiding for the new buy logic
+
+sectionLongs1 = 0
+sectionLongs1 := nz(sectionLongs1[1])
+sectionShorts1 = 0
+sectionShorts1 := nz(sectionShorts1[1])
+    
+//if long_sl[1] == true or short_sl[1] == true or long_tp[1] == true or short_tp[1] == true
+//    sectionLongs1 := 0
+//    sectionShorts1 := 0
+
+if longCond1
+    sectionLongs1 := sectionLongs1 + 1
+    sectionShorts1 := 0
+    sectionShorts1
+
+if shortCond1
+    sectionLongs1 := 0
+    sectionShorts1 := sectionShorts1 + 1
+    sectionShorts1
+
+// Pyramiding
+
+pyrl1 = 1
+
+// These check to see your signal and cross references it against the pyramiding settings above (for the new buy logic)
+
+longCondition = longCond1 and sectionLongs1 <= pyrl1
+shortCondition = shortCond1 and sectionShorts1 <= pyrl1
+// Get the price of the last opened long or short
+
+last_open_longCondition = float(na)
+last_open_shortCondition = float(na)
+last_open_longCondition := longCondition ? close : nz(last_open_longCondition[1])
+last_open_shortCondition := shortCondition ? close : nz(last_open_shortCondition[1])
+
+// Get the price of the last Low opened long or short
+last_High_longCondition = float(na)
+last_Low_shortCondition = float(na)
+last_High_longCondition := longCondition ? high : nz(last_High_longCondition[1])
+last_Low_shortCondition := shortCondition ? low : nz(last_Low_shortCondition[1])
+
+
+// Check if your last postion was a long or a short
+
+last_longCondition = float(na)
+last_shortCondition = float(na)
+last_longCondition := longCondition ? time : nz(last_longCondition[1])
+last_shortCondition := shortCondition ? time : nz(last_shortCondition[1])
+
+in_longCondition = last_longCondition > last_shortCondition
+in_shortCondition = last_shortCondition > last_longCondition
+
+barColour = (in_longCondition ? color.green :in_shortCondition ? color.red  : na)
+
+barcolor(color=barColour)
+
+//plotshape(last_High_longCondition+40 < close , title="Buy Signal", text="B", style=shape.triangleup, location=location.belowbar, color=color.green, editable=false, transp=0)
+//plotshape(last_Low_shortCondition-40 > close , title="Sell Signal", text="S", style=shape.triangledown, location=location.abovebar, color=color.red, editable=false, transp=0)
+
+
+trail = input(100, "SL After hitting the HIGH", type=input.integer)
+TrailTarget = input(300, "High rebound point", type=input.integer)
+
+// Take profit
+
+isTPl = input(false, "Take Profit Long")
+isTPs = input(false, "Take Profit Short")
+
+
+
+
+long_tp := isTPl and crossover(high, (1 + tp / 100) * last_open_longCondition) and 
+   longCondition == 0 and in_longCondition == 1
+short_tp := isTPs and crossunder(low, (1 - tp / 100) * last_open_shortCondition) and 
+   shortCondition == 0 and in_shortCondition == 1
+
+LongTrailTP := (long_tp ? close : nz(LongTrailTP[1]))
+ShortTrailTP := (short_tp ? close : nz(ShortTrailTP[1]))
+
+plot(gridline ? LongTrailTP: na, style=plot.style_line, linewidth=4, color=color.white, editable=false)
+plot(gridline ? ShortTrailTP: na, style=plot.style_line, linewidth=4, color=color.white, editable=false)
+
+// Stop Loss
+
+isSLl = input(false, "Stop Loss Long")
+isSLs = input(false, "Stop Loss Short")
+
+
+ref1 := (last_open_longCondition + trail)
+
+
+ref2 := (last_open_shortCondition - trail)
+
+
+LongTrailSL := (close > (last_open_longCondition + TrailTarget)) and in_longCondition == 1 ? ref1: nz(LongTrailSL[1])
+ShortTrailSL := (close < (last_open_shortCondition - TrailTarget)) and in_shortCondition == 1 ? ref2 : nz(ShortTrailSL[1])
+
+plot(gridline ? LongTrailSL: na, style=plot.style_line, linewidth=5, color=color.green, editable=false)
+plot(gridline ? ShortTrailSL: na, style=plot.style_line, linewidth=5, color=color.red, editable=false)
+
+
+long_sl :=  ((isSLl and crossunder(low, (1 - sl / 100) * last_open_longCondition) and longCondition == 0 and in_longCondition == 1) or ( isSLl and LongTrailSL == (last_open_longCondition + trail) and crossunder(close, LongTrailSL) and longCondition == 0 and in_longCondition == 1 ))
+short_sl :=  ( (isSLs and crossover(high, (1 + sl / 100) * last_open_shortCondition) and shortCondition == 0 and in_shortCondition == 1) or ( isSLs and ShortTrailSL == (last_open_shortCondition - trail) and crossover(close, ShortTrailSL) and  shortCondition == 0 and in_shortCondition == 1 ))
+
+
+// Create a single close for all the different closing conditions.
+
+long_close = long_tp or long_sl ? 1 : 0
+short_close = short_tp or short_sl ? 1 : 0
+
+// Get the time of the last close
+
+last_long_close = float(na)
+last_short_close = float(na)
+last_long_close := long_close ? time : nz(last_long_close[1])
+last_short_close := short_close ? time : nz(last_short_close[1])
+
+// Alerts & Signals
+
+bton(b) =>
+    b ? 1 : 0
+plotshape(longCondition, title="Buy Signal", text="BUY", style=shape.triangleup, location=location.belowbar, color=color.green, editable=false, transp=0)
+plotshape(shortCondition, title="Sell Signal", text="SELL", style=shape.triangledown, location=location.abovebar, color=color.red, editable=false, transp=0)
+
+plotshape(long_tp and last_longCondition > nz(last_long_close[1]), text="TP", title="Take Profit Long", style=shape.triangledown, location=location.abovebar, color=color.red, editable=false, transp=0)
+plotshape(short_tp and last_shortCondition > nz(last_short_close[1]), text="TP", title="Take Profit Short", style=shape.triangleup, location=location.belowbar, color=color.lime, editable=false, transp=0)
+
+ltp = iff(long_tp and last_longCondition > nz(last_long_close[1]), (1 + tp / 100) * last_open_longCondition, na)
+plot(ltp, style=plot.style_cross, linewidth=3, color=color.white, editable=false)
+stp = iff(short_tp and last_shortCondition > nz(last_short_close[1]), (1 - tp / 100) * last_open_shortCondition, na)
+plot(stp, style=plot.style_cross, linewidth=3, color=color.white, editable=false)
+
+plotshape(long_sl and last_longCondition > nz(last_long_close[1]), text="SL", title="Stop Loss Long", style=shape.triangledown, location=location.abovebar, color=color.red, editable=false, transp=0)
+plotshape(short_sl and last_shortCondition > nz(last_short_close[1]), text="SL", title="Stop Loss Short", style=shape.triangleup, location=location.belowbar, color=color.lime, editable=false, transp=0)
+
+lsl = iff(long_sl and last_longCondition > nz(last_long_close[1]), (1 - sl / 100) * last_open_longCondition, na)
+plot(lsl, style=plot.style_cross, linewidth=3, color=color.white, editable=false)
+ssl = iff(short_sl and last_shortCondition > nz(last_short_close[1]), (1 + sl / 100) * last_open_shortCondition, na)
+plot(ssl, style=plot.style_cross, linewidth=3, color=color.white, editable=false)
+
+alertcondition(bton(longCondition), title="Buy Alert")
+alertcondition(bton(shortCondition), title="Sell Alert")
+alertcondition(bton(long_tp and last_longCondition > nz(last_long_close[1])), title="Take Profit Long")
+alertcondition(bton(short_tp and last_shortCondition > nz(last_short_close[1])), title="Take Profit Short")
+alertcondition(bton(long_sl and last_longCondition > nz(last_long_close[1])), title="Stop Loss Long")
+alertcondition(bton(short_sl and last_shortCondition > nz(last_short_close[1])), title="Stop Loss Short")
+
+if  shortCondition
+    strategy.close("BUY")
+    strategy.order("SELL",strategy.short) 
+if  longCondition
+    strategy.close("SELL")
+    strategy.order("BUY",strategy.long)
+
+tpCheck = long_sl and last_longCondition > nz(last_long_close[1])
+if  tpCheck
+    strategy.close("BUY")
+    
+tpCheck1 = short_sl and last_shortCondition > nz(last_short_close[1])
+if  tpCheck1
+    strategy.close("SELL")
+check1 = long_tp and last_longCondition > nz(last_long_close[1])
+if  check1
+    strategy.close("BUY")
+check2 = short_tp and last_shortCondition > nz(last_short_close[1])
+if  check2
+    strategy.close("SELL")
+//if ( hour(time) == 15 and minute(time) > 25  )  
+//    strategy.close("BUY")
+//    strategy.close("SELL")
