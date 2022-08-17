@@ -342,3 +342,4 @@ if  check2
 //    strategy.close("BUY")
 //    strategy.close("SELL")
 //Enable Stop loss , disable TP
+//This is a 5min strategy settings = 20-3-4000-180-60-25-20-200
