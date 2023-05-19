@@ -1,0 +1,16 @@
+$body = @{'domain' = 'XXXXX'
+                  'password' = 'FXXXXX'
+                  'username' = 'XXXXX'}
+$data = $body | ConvertTo-Json
+
+$refreshToken = Invoke-RestMethod -Method Post -Uri 'https://XXXXXXX/csp/gateway/am/api/login?access_token' -Headers @{'Content-Type'='application/json'} -Body $data
+
+$refreshToken = @{'refreshToken' = $refreshToken.refresh_token}
+$refreshToken1 = $refreshToken | ConvertTo-Json
+$token = Invoke-RestMethod -Method Post -Uri 'https://<tenant.vRaServerWithDNS>/iaas/api/login' -Headers @{'Content-Type'='application/json'} -Body $refreshToken1
+
+
+$headers = @{'Content-Type'='application/json'
+                      'Authorization' = 'Bearer ' + $token.token}
+
+Invoke-RestMethod -Method Get -Uri 'https://<tenant.vRaServerWithDNS>/deployment/api/deployments?page=0&size=20&sort=createdAt%2CDESC&%24top=1&%24skip=0' -Headers $headers
