@@ -14,7 +14,7 @@ $SN22 += @($host2 | Select-Object name, @{N = "Serial Number"; E = {($esxcli.har
                                     @{N = "UUID"; E = {($esxcli.hardware.platform.get()).UUID}})
 }
 Write-Output "enter the path details to get the file in csv, example:  c:\test.csv "
-$SN22 | Export-Csv
+$SN22 | Export-Csv (read-host "Enter the CSV path ")
 }
 function serial_esx([string]$host3,[string]$ESX_name)
 {
