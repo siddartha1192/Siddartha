@@ -1,4 +1,6 @@
 ﻿$token = 'gAAAAABg8QqtceXiQV4BG_-DNnUPvPyG_uQw3zG3Srj8G_hlF6GC7XXCDM1JlJjk7wVE2PeRFKTSNfEphzZvKtZP3vLoaXDRv9iAnAkMEgP7QDXLiSzw1lg='
+$symbol = 'NSE:IOC-EQ1'
+#testing data
 $symbol = 'NSE:IOC-EQ'
 function Cancel-SeletedStock($token,$symbol)
 {
