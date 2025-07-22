@@ -1,0 +1,55 @@
+# 1. Fetch active Windows servers with a non-empty decommission date and a specific DNS domain(Get Decom ServerList)
+$url = 'https://atyourserviceportal.service-now.com/api/now/table/cmdb_ci_win_server?sysparm_query=active=true^u_decommission_dateISNOTEMPTY^dns_domain=testdev.local&sysparm_limit=100000'
+# - Table: cmdb_ci_win_server (Windows servers in CMDB)
+# - Filters:
+#   - active=true: Only active records
+#   - u_decommission_dateISNOTEMPTY: Only servers with a decommission date
+#   - dns_domain=testdev.local: Only servers in the 'testdev.local' domain
+# - Limit: 100000 records
+
+# 2. Get variables for a specific RITM (Request Item)
+$url = 'https://atyourserviceportaldev1.service-now.com/api/testg2/test_task_api/RITM25007530101/getVariables'
+# - Custom API to fetch variables associated with RITM2500101
+# - Likely used to retrieve form inputs or custom fields for a request item
+
+# 3. Fetch active SC tasks assigned to specific assignment groups with reroute category
+$url = 'https://atyourserviceportal.service-now.com/api/now/table/sc_task?sysparm_query=active=true^assignment_group=016a066f4f8bf640e6da69118110c75f^ORassignment_group=3ae94a6f4f8bf640e6da69118110c7d4^ORassignment_group=543a4e6f4f8bf640e6da69118110c7f5^ORassignment_group=f3fa4e6f4f8bf640e6da69118110c7fd&sysparm_query_category=reroute'
+# - Table: sc_task (Service Catalog tasks)
+# - Filters:
+#   - active=true: Only active tasks
+#   - assignment_group: Tasks assigned to any of the listed groups
+#   - sysparm_query_category=reroute: Tasks categorized under 'reroute'
+
+# 4. (Commented out) Fetch all active request items
+#$url = 'https://atyourserviceportaldev1.service-now.com/api/now/table/sc_req_item?sysparm_query=active=true'
+# - Table: sc_req_item (Service Catalog request items)
+# - Filter: active=true
+
+# 5. (Commented out) Fetch a specific user record
+#$url = 'https://atyourserviceportaldev1.service-now.com/api/now/table/sys_user/fd6c31e61baa7c50fc9aa71b234bcb93'
+# - Table: sys_user
+# - Fetch user with sys_id = fd6c31e61baa7c50fc9aa71b234bcb93
+
+# 6. Refined version of #3 with SCTASK prefix filter
+$url = 'https://atyourserviceportal.service-now.com/api/now/table/sc_task?sysparm_query=active=true^assignment_group=543a4e6f4f8bf640e6da69118110c7f5^ORassignment_group=016a066f4f8bf640e6da69118110c75f^ORassignment_group=f3fa4e6f4f8bf640e6da69118110c7fd^ORassignment_group=3ae94a6f4f8bf640e6da69118110c7d4^numberSTARTSWITHSCTASK&sysparm_query_category=reroute'
+# - Same as #3 but adds:
+#   - numberSTARTSWITHSCTASK: Ensures only SC tasks (SCTASK prefix) are included
+
+# 7. Get members of a specific assignment group
+$url = 'https://atyourserviceportal.service-now.com/api/now/table/sys_user_grmember?sysparm_query=group=543a4e6f4f8bf640e6da69118110c7f5&sysparm_fields=user'
+# - Table: sys_user_grmember (User-group membership)
+# - Filter: group=sys_id of the assignment group
+# - Fields: Only return the 'user' field
+# 8. (Commented out) Direct navigation to a specific request item in the UI
+#$url = 'https://atyourserviceportal.service-now.com/nav_to.do?uri=sc_req_item.do?sys_id=9c487fae930226544646b73a7bba1068&sysparm_stack=sc_req_item_list.do?sysparm_query=active=true'
+# - UI navigation URL, not an API call
+# - Opens the request item form for the given sys_id
+
+# 9. Fetch a specific user record (duplicate of #5 but active)
+$url = 'https://atyourserviceportal.service-now.com/api/now/table/sys_user/fd6c31e61baa7c50fc9aa71b234bcb93'
+# - Table: sys_user
+# - Fetch user with sys_id = fd6c31e61baa7c50fc9aa71b234bcb93
+
+# 10. Get variables for another RITM
+$url = 'https://atyourserviceportal.service-now.com/api/testg2/test_task_api/RITM258514/getVariables'
+# - Custom API to fetch variables for RITM25014
