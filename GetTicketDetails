@@ -1,0 +1,73 @@
+import pandas as pd
+import base64
+import requests
+import json
+
+# ServiceNow instance and credentials
+instance_name = 'portal'
+api_user = 'server.build'
+api_password = 'cua}Y]D[Ns;1^!Nlnx9r'
+
+# Encode credentials for Basic Auth
+auth_header = {
+    'Authorization': 'Basic ' + base64.b64encode(f'{api_user}:{api_password}'.encode('ascii')).decode('ascii')
+}
+
+def fetch_active_ticket_counts():
+    """
+    Fetches the count of active 'reroute' category tickets assigned to each user in a specific group.
+    Returns a DataFrame with non-zero ticket counts.
+    """
+
+    # Base URL for fetching active tickets assigned to a user (placeholder 'USER_ID' to be replaced)
+    ticket_query_url_template = (
+        'https://atyourserviceportal.service-now.com/api/now/table/sc_task'
+        '?sysparm_query=active=true^assigned_to=USER_ID^category=reroute'
+    )
+
+    # URL template to fetch user details
+    user_details_url_template = (
+        'https://atyourserviceportal.service-now.com/api/now/table/sys_user/USER_ID'
+    )
+
+    # URL to get all users in a specific group (replace group ID as needed)
+    group_members_url = (
+        'https://atyourserviceportal.service-now.com/api/now/table/sys_user_grmember'
+        '?sysparm_query=group=543a4e6f4f8bf640e6da69118110c7f5&sysparm_fields=user'
+    )
+
+    # Fetch list of users in the group
+    group_response = requests.get(url=group_members_url, verify=False, headers=auth_header)
+    user_records = pd.DataFrame(json.loads(group_response.content)['result'])['user']
+
+    ticket_summary = []
+
+    # Iterate through each user and fetch ticket count
+    for user in user_records:
+        try:
+            user_id = user['value']
+
+            # Construct user-specific ticket query URL
+            ticket_url = ticket_query_url_template.replace('USER_ID', user_id)
+            ticket_response = requests.get(url=ticket_url, verify=False, headers=auth_header)
+            ticket_count = len(json.loads(ticket_response.content)['result'])
+
+            # Fetch user name
+            user_info_url = user_details_url_template.replace('USER_ID', user_id)
+            user_info_response = requests.get(url=user_info_url, verify=False, headers=auth_header)
+            user_name = json.loads(user_info_response.content)['result']['name']
+
+            # Append result
+            ticket_summary.append({
+                "AssignedTo": user_name,
+                "TicketCount": ticket_count
+            })
+
+        except Exception as error:
+            print("Error fetching data for user:", error)
+
+    # Convert to DataFrame and filter users with non-zero tickets
+    ticket_df = pd.DataFrame(ticket_summary)
+    active_ticket_df = ticket_df[ticket_df['TicketCount'] != 0]
+
+    return active_ticket_df
