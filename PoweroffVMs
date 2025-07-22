@@ -1,0 +1,85 @@
+# Define global variables
+$vmNames = Get-Content "C:\Users\Documents\server_list.txt"
+$timeout = 100
+$vCenterServer = "xxxxxx.xxdev.local"
+$vCenterUser = "xxx\xxxxxxx"
+$vCenterPassword = "XXXXXXXXXX"
+
+# Function to connect to vCenter
+function Connect-ToVCenter {
+    Write-Host "Connecting to vCenter..." -ForegroundColor Cyan
+    Connect-VIServer -Server $vCenterServer -User $vCenterUser -Password $vCenterPassword -WarningAction SilentlyContinue
+}
+
+# Function to gracefully shut down a VM
+function Shutdown-VMGracefully {
+    param (
+        [string]$vmName
+    )
+    $vm = Get-VM -Name $vmName -ErrorAction SilentlyContinue
+    if ($vm -and $vm.PowerState -ne "PoweredOff") {
+        Write-Host "Initiating graceful shutdown for VM: $vmName" -ForegroundColor Yellow
+        Shutdown-VMGuest -VM $vm -Confirm:$false
+    } elseif ($vm) {
+        Write-Host "VM $vmName is already powered off." -ForegroundColor Green
+    } else {
+        Write-Host "VM $vmName not found." -ForegroundColor Red
+    }
+}
+
+# Function to wait for shutdown or force power off
+function Ensure-VMShutdown {
+    param (
+        [string]$vmName,
+        [int]$timeout
+    )
+    $vm = Get-VM -Name $vmName -ErrorAction SilentlyContinue
+    if (-not $vm) {
+        return [PSCustomObject]@{ VMName = $vmName; Status = "VM Not Found" }
+    }
+
+    $startTime = Get-Date
+    while ($vm.PowerState -ne "PoweredOff" -and ((Get-Date) - $startTime).TotalSeconds -lt $timeout) {
+        Start-Sleep -Seconds 5
+        $vm = Get-VM -Name $vmName
+    }
+
+    if ($vm.PowerState -ne "PoweredOff") {
+        Write-Host "Forcefully powering off VM: $vmName" -ForegroundColor Red
+        Stop-VM -VM $vm -Confirm:$false
+        return [PSCustomObject]@{ VMName = $vmName; Status = "Forcefully Powered Off" }
+    } else {
+        return [PSCustomObject]@{ VMName = $vmName; Status = "Gracefully Powered Off" }
+    }
+}
+
+# Function to disconnect from vCenter
+function Disconnect-FromVCenter {
+    Write-Host "Disconnecting from vCenter..." -ForegroundColor Cyan
+    Disconnect-VIServer -Server $vCenterServer -Confirm:$false
+}
+
+# Main script execution
+Connect-ToVCenter
+
+$results = @()
+
+foreach ($vmName in $vmNames) {
+    Shutdown-VMGracefully -vmName $vmName
+}
+
+foreach ($vmName in $vmNames) {
+    $result = Ensure-VMShutdown -vmName $vmName -timeout $timeout
+    $results += $result
+}
+
+Disconnect-FromVCenter
+
+# Output results
+$results | Format-Table -AutoSize
+
+# Export results to CSV
+$dateInfo = Get-Date -Format "yyyy_MM_dd_HHmmss"
+$exportPath = "C:\vm_shutdown_status_$dateInfo.csv"
+$results | Export-Csv -LiteralPath $exportPath -NoTypeInformation
+Write-Host "Results exported to $exportPath" -ForegroundColor Cyan
