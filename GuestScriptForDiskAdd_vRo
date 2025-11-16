@@ -1,0 +1,41 @@
+# Workflow Action for running script in Windows Guest VM for allocating disk.
+function Handler($context, $inputs)
+{
+
+
+    # Guest script to allocate and format new disk
+    $diskScript = @'
+$rawDisks = Get-Disk | Where-Object PartitionStyle -Eq "RAW"
+foreach ($disk in $rawDisks) {
+    Write-Host "Initializing disk $($disk.Number)"
+    Initialize-Disk -Number $disk.Number -PartitionStyle GPT
+    Write-Host "Creating partition on disk $($disk.Number)"
+    $partition = New-Partition -DiskNumber $disk.Number -UseMaximumSize -AssignDriveLetter
+    Write-Host "Formatting partition on disk $($disk.Number)"
+    Format-Volume -DriveLetter $partition.DriveLetter -FileSystem NTFS -NewFileSystemLabel "DataDisk" -Confirm:$false
+}
+'@
+
+    # Credentials
+    $userName = $inputs.TemplateUser
+    $pass = $inputs.TemplatePass
+    $secStringPassword = $pass | ConvertTo-SecureString -AsPlainText -Force
+    [pscredential]$credObject = New-Object System.Management.Automation.PSCredential($userName, $secStringPassword)
+
+    # Connect to vCenter
+    Connect-VIServer -Server "<vCenter1>","<vCenter2>" -User $inputs.vCenterUser -Password $inputs.vCenterPass -WarningAction SilentlyContinue -Force
+
+    $host1 = $inputs.HostName
+    if (Get-VM $host1 -ErrorAction SilentlyContinue) {
+        Write-Host "Processing VM: $host1"
+
+        # Step 3: Allocate and format new disk
+        Start-Sleep -Seconds 10
+        $outputDisk = Invoke-VMScript -VM (Get-VM $host1) -ScriptText $diskScript -GuestCredential $credObject -ScriptType Powershell
+        Write-Host "Disk Allocation Output: $($outputDisk.ScriptOutput)"
+
+    }
+    else {
+        Write-Host "VM not found"
+    }
+}
